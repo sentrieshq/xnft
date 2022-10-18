@@ -12,11 +12,11 @@ export type SentriesDetailsData = {
   error?: string;
 };
 
-export const useSentriesStats = () => {
+export const useSentries = () => {
   return useQuery<SentriesDetailsData | undefined>(
     ["useSentriesStats"],
     async () => {
-      return await fetch(`/v1/sentries`)
+      return await fetch(`https://api.sentries.io/v1/sentries`)
         .then((response) => response.json())
         .then((data) => {
           return data;

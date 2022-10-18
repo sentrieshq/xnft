@@ -33,3 +33,29 @@ export function truncateString(address: string, lengthToShow = 6) {
 
   return `${firstCharacterGroup}...${secondCharacterGroup}`;
 }
+
+export function formatNumberToLocale(number: number | undefined) {
+  if (!number) return 0;
+  return Number(number).toLocaleString();
+}
+
+export function calculatePercentage(number?: number, total?: number) {
+  if (!number || !total) return "0";
+
+  const result = (number * 100) / total;
+
+  return formatNumberToLocale(result) + "%";
+}
+
+export function valueOrDefault(prop: number | undefined, defaultProp: number) {
+  return prop ? prop : defaultProp;
+}
+
+export function formatNumberToK(number: number | string) {
+  const numberToFormat =
+    typeof number === "string" ? parseFloat(number) : number;
+
+  if (numberToFormat > 999) {
+    return (numberToFormat / 1000).toFixed(2) + "k";
+  }
+}

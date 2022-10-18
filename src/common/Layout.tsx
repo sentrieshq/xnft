@@ -1,5 +1,6 @@
 import { View, Image, Text } from "react-xnft";
 import { useAddress } from "../hooks/useAddress";
+import { theme } from "../utils/theme";
 import { truncateString } from "../utils/utils";
 import { Label } from "./Label";
 
@@ -29,12 +30,16 @@ export function Layout(props: LayoutProps) {
     <View
       style={{
         ...bg,
-        padding: "1.5em",
         color: "white",
         height: "100%",
       }}
     >
-      <View>
+      <View
+        style={{
+          padding: theme.containerPadding,
+          paddingBottom: 0,
+        }}
+      >
         <Image
           style={{
             marginLeft: "-10px",
@@ -42,7 +47,15 @@ export function Layout(props: LayoutProps) {
           src="https://res.cloudinary.com/aukaco/image/upload/v1665917235/logo_bv6uam.png"
         />
       </View>
-      <AddressPill address={currentWalletAddress} />
+      <View
+        style={{
+          padding: theme.containerPadding,
+          paddingBottom: "0.5em",
+          paddingTop: 0,
+        }}
+      >
+        <AddressPill address={currentWalletAddress} />
+      </View>
       <View
         style={{
           marginTop: "0.8em",
