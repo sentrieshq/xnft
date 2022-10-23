@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import useSWR from "swr";
 
 export type SentriesDetailsData = {
   poweredSentries: number;
@@ -13,17 +13,7 @@ export type SentriesDetailsData = {
 };
 
 export const useSentries = () => {
-  return useQuery<SentriesDetailsData | undefined>(
-    ["useSentriesStats"],
-    async () => {
-      return await fetch(`https://api.sentries.io/v1/sentries`)
-        .then((response) => response.json())
-        .then((data) => {
-          return data;
-        });
-    },
-    {
-      retry: 2,
-    }
+  return useSWR<SentriesDetailsData | undefined>(
+    "https://api.sentries.io/v1/sentries"
   );
 };

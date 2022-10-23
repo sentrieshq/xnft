@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import useSWR from "swr";
 import { useAddress } from "./useAddress";
 
 export type Rewards = {
@@ -21,18 +21,7 @@ export type SentriesStakingData = {
 export const usePower = () => {
   const address = useAddress();
 
-  return useQuery<SentriesStakingData | undefined>(
-    ["useSentryPower", address],
-    async () => {
-      return await fetch(`https://api.sentries.io/v1/power/${address}`)
-        .then((response) => response.json())
-        .then((data) => {
-          return data;
-        });
-    },
-    {
-      enabled: !!address,
-      retry: 2,
-    }
+  return useSWR<SentriesStakingData | undefined>(
+    address ? `https://api.sentries.io/v1/power/${address}` : null
   );
 };

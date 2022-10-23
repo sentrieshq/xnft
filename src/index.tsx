@@ -1,13 +1,17 @@
 import ReactXnft, { AnchorDom } from "react-xnft";
 import { App } from "./App";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient();
+import { SWRConfig } from "swr";
 
 ReactXnft.render(
   <AnchorDom>
-    <QueryClientProvider client={queryClient}>
+    <SWRConfig
+      value={{
+        refreshInterval: 3000,
+        fetcher: (resource, init) =>
+          fetch(resource, init).then((res) => res.json()),
+      }}
+    >
       <App />
-    </QueryClientProvider>
+    </SWRConfig>
   </AnchorDom>
 );
