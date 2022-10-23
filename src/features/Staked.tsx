@@ -1,6 +1,7 @@
 import { View, Text, Loading } from "react-xnft";
 import { SentriesStakingData } from "../hooks/usePower";
 import { theme } from "../utils/theme";
+import { formatNumber } from "../utils/utils";
 
 type StakedProps = Partial<
   Pick<SentriesStakingData, "nftCount" | "totalStaked" | "maxPowerLevelSol">
@@ -9,7 +10,7 @@ type StakedProps = Partial<
 };
 
 export function Staked(props: StakedProps) {
-  const { nftCount, totalStaked, maxPowerLevelSol, isLoading } = props;
+  const { totalStaked, isLoading } = props;
 
   return isLoading ? (
     <Loading />
@@ -22,7 +23,7 @@ export function Staked(props: StakedProps) {
           fontWeight: "800",
         }}
       >
-        {totalStaked} SOL
+        {formatNumber(totalStaked)} SOL
       </Text>
       <Text
         style={{
@@ -32,15 +33,6 @@ export function Staked(props: StakedProps) {
         }}
       >
         Staked with the Lode
-      </Text>
-      <Text
-        style={{
-          fontSize: "0.8rem",
-          marginTop: "0.4em",
-          color: theme.mutedText2,
-        }}
-      >
-        {maxPowerLevelSol} ◎ to power up the {nftCount} Sentries NFTs
       </Text>
     </View>
   );
