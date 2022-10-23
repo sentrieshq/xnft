@@ -1,7 +1,7 @@
 import { Text } from "react-xnft";
 import { theme } from "../utils/theme";
 
-type LabelProps = {
+export type LabelProps = {
   children: React.ReactNode;
   variant: "brand" | "accent";
 };

@@ -1,21 +1,13 @@
-import { View, Image, Text } from "react-xnft";
-import { useAddress } from "../hooks/useAddress";
+import { View, Image } from "react-xnft";
 import { theme } from "../utils/theme";
-import { truncateString } from "../utils/utils";
-import { Label } from "./Label";
 
 type LayoutProps = {
   children: React.ReactNode;
   hideBg?: boolean;
 };
 
-type AddressPillProps = {
-  address: string;
-};
-
 export function Layout(props: LayoutProps) {
   const { children, hideBg = false } = props;
-  const currentWalletAddress = useAddress();
 
   const bg = hideBg
     ? {}
@@ -37,6 +29,7 @@ export function Layout(props: LayoutProps) {
       <View
         style={{
           padding: theme.containerPadding,
+          paddingTop: "0.5em",
           paddingBottom: 0,
         }}
       >
@@ -47,29 +40,7 @@ export function Layout(props: LayoutProps) {
           src="https://res.cloudinary.com/aukaco/image/upload/v1665917235/logo_bv6uam.png"
         />
       </View>
-      <View
-        style={{
-          padding: theme.containerPadding,
-          paddingBottom: "0.5em",
-          paddingTop: 0,
-        }}
-      >
-        <AddressPill address={currentWalletAddress} />
-      </View>
-      <View
-        style={{
-          marginTop: "0.8em",
-        }}
-      >
-        {children}
-      </View>
+      <View>{children}</View>
     </View>
   );
-}
-
-function AddressPill(props: AddressPillProps) {
-  const { address } = props;
-  const truncatedAddress = truncateString(address, 6);
-
-  return <Label variant="brand">{truncatedAddress}</Label>;
 }

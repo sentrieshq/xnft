@@ -1,12 +1,13 @@
-import React from "react";
 import { View, Text } from "react-xnft";
+import { Metric } from "../common/Metric";
+import { ProgressBar } from "../common/Progress";
 import { SentriesDetailsData } from "../hooks/useSentries";
 import { MAX_SENTRIES } from "../utils/constants";
 import { theme } from "../utils/theme";
 import {
   calculatePercentage,
-  formatNumberToK,
-  formatNumberToLocale,
+  formatUSD,
+  formatNumber,
   valueOrDefault,
 } from "../utils/utils";
 
@@ -17,11 +18,6 @@ type StatsProps = Partial<
   >
 >;
 
-type ProgressBarProps = {
-  color: string;
-  value: number;
-};
-
 export function Stats(props: StatsProps) {
   const floorPrice = valueOrDefault(props.floorPrice, 0);
   const stakedSentries = valueOrDefault(props.stakedSentries, 0);
@@ -29,7 +25,6 @@ export function Stats(props: StatsProps) {
   const poweredSentries = valueOrDefault(props.poweredSentries, 0);
 
   const currentValueLocked = floorPrice * stakedSentries * solPrice;
-  const marketCap = floorPrice * MAX_SENTRIES * solPrice;
 
   const stakedSentriesPct = calculatePercentage(stakedSentries, MAX_SENTRIES);
   const poweredUpSentriesPct = calculatePercentage(
@@ -55,91 +50,38 @@ export function Stats(props: StatsProps) {
           gridTemplateRows: "repeat(2, 1fr)",
         }}
       >
-        <View>
-          <Text>
-            {formatNumberToLocale(stakedSentries)}
-            {` `}({stakedSentriesPct})
-          </Text>
-          <ProgressLabel>Total Sentries Staked</ProgressLabel>
+        <Metric
+          title={`
+            ${formatNumber(stakedSentries)} (${stakedSentriesPct})
+          `}
+          subtitle="Total Sentries Staked"
+        >
           <ProgressBar
             value={parseFloat(stakedSentriesPct)}
             color={theme.brand}
           />
-        </View>
-        <View>
-          <Text>
-            {formatNumberToLocale(poweredSentries)}
-            {` `}({poweredUpSentriesPct})
-          </Text>
-          <ProgressLabel>Powered Up Sentries</ProgressLabel>
+        </Metric>
+        <Metric
+          title={`
+            ${formatNumber(poweredSentries)} (${poweredUpSentriesPct})
+          `}
+          subtitle="Powered Up Sentries"
+        >
           <ProgressBar
             value={parseFloat(poweredUpSentriesPct)}
             color={theme.blue}
           />
-        </View>
-        <View>
-          <Text>
-            ${formatNumberToK(currentValueLocked)}
-            {` `}
-          </Text>
-          <ProgressLabel>Total Value Locked</ProgressLabel>
+        </Metric>
+        <Metric
+          title={formatUSD(currentValueLocked) as string}
+          subtitle="Total Value Locked"
+        >
           <ProgressBar
             value={parseFloat(stakedSentriesPct)}
             color={theme.accent}
           />
-        </View>
+        </Metric>
       </View>
     </View>
-  );
-}
-
-function ProgressBar(props: ProgressBarProps) {
-  const { color, value } = props;
-
-  const commonCSS = {
-    height: "4px",
-    borderRadius: "100px",
-    position: "absolute",
-    top: 0,
-  };
-
-  return (
-    <View
-      style={{
-        position: "relative",
-        width: "85%",
-      }}
-    >
-      <View
-        style={{
-          ...commonCSS,
-          width: value,
-          backgroundColor: color,
-          zIndex: 20,
-        }}
-      />
-      <View
-        style={{
-          ...commonCSS,
-          width: "100%",
-          backgroundColor: theme.mutedText,
-          zIndex: 10,
-          opacity: 0.2,
-        }}
-      />
-    </View>
-  );
-}
-
-function ProgressLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <Text
-      style={{
-        color: theme.mutedText,
-        fontSize: "0.75rem",
-      }}
-    >
-      {children}
-    </Text>
   );
 }
