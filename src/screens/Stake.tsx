@@ -109,7 +109,8 @@ function SentryRow(props: SentryRowProps) {
       onClick={onClick}
       style={{
         display: "flex",
-        gap: "0.9em",
+        justifyContent: "space-between",
+        alignItems: "center",
         borderBottomColor: selected ? theme.bgLight : "#292929",
         borderBottomStyle: "solid",
         borderBottomWidth: "1px",
@@ -122,53 +123,76 @@ function SentryRow(props: SentryRowProps) {
         transition: "all 0.2s ease-in-out",
       }}
     >
-      <Image
-        src={sentry.image}
-        alt={sentry.name}
+      <View
         style={{
-          width: "42px",
-          height: "42px",
-          borderRadius: "12px",
+          display: "flex",
+          gap: "0.9em",
         }}
-      />
-      <View>
-        <Text>{sentry.name}</Text>
-        <View
+      >
+        <Image
+          src={sentry.image}
+          alt={sentry.name}
           style={{
-            display: "flex",
-            gap: "0.3em",
+            width: "42px",
+            height: "42px",
+            borderRadius: "12px",
           }}
-        >
-          <Text
-            style={{
-              fontSize: "0.75rem",
-              color: theme.mutedText,
-            }}
-          >
-            {sentry.staked ? "Staked" : "Not Staked"}
-          </Text>
+        />
+        <View>
+          <Text>{sentry.name}</Text>
           <View
             style={{
-              position: "relative",
-              top: "-1px",
+              display: "flex",
+              gap: "0.3em",
             }}
           >
-            {sentry.staked ? (
-              <Svg
-                viewBox="0 0 24 24"
-                fill={theme.accent}
-                width="16px"
-                height="16px"
-              >
-                <Path
-                  fillRule="evenodd"
-                  d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
-                  clipRule="evenodd"
-                />
-              </Svg>
-            ) : null}
+            <Text
+              style={{
+                fontSize: "0.75rem",
+                color: theme.mutedText,
+              }}
+            >
+              {sentry.staked ? "Staked" : "Not Staked"}
+            </Text>
+            <View
+              style={{
+                position: "relative",
+                top: "-1px",
+              }}
+            >
+              {sentry.staked ? (
+                <Svg
+                  viewBox="0 0 24 24"
+                  fill={theme.accent}
+                  width="16px"
+                  height="16px"
+                >
+                  <Path
+                    fillRule="evenodd"
+                    d="M2.25 12c0-5.385 4.365-9.75 9.75-9.75s9.75 4.365 9.75 9.75-4.365 9.75-9.75 9.75S2.25 17.385 2.25 12zm13.36-1.814a.75.75 0 10-1.22-.872l-3.236 4.53L9.53 12.22a.75.75 0 00-1.06 1.06l2.25 2.25a.75.75 0 001.14-.094l3.75-5.25z"
+                    clipRule="evenodd"
+                  />
+                </Svg>
+              ) : null}
+            </View>
           </View>
         </View>
+      </View>
+      <View
+        style={{
+          transform: `scale(${selected ? 1 : 0})`,
+          transition: "transform 0.2s ease-in-out",
+        }}
+      >
+        <View
+          style={{
+            backgroundColor: theme.accent,
+            width: "10px",
+            height: "10px",
+            borderRadius: "100px",
+            boxShadow: "0 0 0 4px #1f322c",
+          }}
+        />
       </View>
     </View>
   );
