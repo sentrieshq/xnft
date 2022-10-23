@@ -1,5 +1,7 @@
 import { Tab, Image } from "react-xnft";
+import { ActiveFilter } from "../features/StakeFilter";
 import { NavigatorRoute, Route } from "../typings/routes";
+import { SentryData } from "../typings/tokenMetadata";
 import { Icon } from "./icons";
 
 export function getTabComponent(route: NavigatorRoute, focused?: boolean) {
@@ -34,28 +36,61 @@ export function truncateString(address: string, lengthToShow = 6) {
   return `${firstCharacterGroup}...${secondCharacterGroup}`;
 }
 
-export function formatNumberToLocale(number: number | undefined) {
-  if (!number) return 0;
-  return Number(number).toLocaleString();
+export function formatNumber(
+  number: number | undefined,
+  short: boolean = false
+) {
+  if (!number) return "0";
+
+  const formatter = Intl.NumberFormat("en", {
+    notation: short ? "compact" : "standard",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+
+  return formatter.format(number);
 }
 
 export function calculatePercentage(number?: number, total?: number) {
   if (!number || !total) return "0";
 
-  const result = (number * 100) / total;
+  const formatter = Intl.NumberFormat("en", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+    style: "percent",
+  });
 
-  return formatNumberToLocale(result) + "%";
+  const result = number / total;
+
+  return formatter.format(result);
 }
 
 export function valueOrDefault(prop: number | undefined, defaultProp: number) {
   return prop ? prop : defaultProp;
 }
 
-export function formatNumberToK(number: number | string) {
-  const numberToFormat =
-    typeof number === "string" ? parseFloat(number) : number;
+export function formatUSD(number?: number) {
+  if (!number) return "0";
 
-  if (numberToFormat > 999) {
-    return (numberToFormat / 1000).toFixed(2) + "k";
-  }
+  const formatCompactUSD = Intl.NumberFormat("en-US", {
+    notation: "compact",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    currency: "USD",
+  });
+
+  return "$" + formatCompactUSD.format(number);
+}
+
+export function checkUniqueStake(selected: SentryData[]) {
+  return selected.length
+    ? selected.every((selectedElement) => selectedElement.staked) ||
+        selected.every((selectedElement) => selectedElement.staked === false)
+    : undefined;
+}
+
+export function whichStakeType(selected: SentryData[]) {
+  return selected.every((selectedEntry) => selectedEntry.staked)
+    ? "stake"
+    : "unstake";
 }
