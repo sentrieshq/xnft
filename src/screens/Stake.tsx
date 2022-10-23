@@ -67,6 +67,7 @@ export function Stake() {
           minHeight: "100%",
         }}
       >
+        {!sentries.length ? <EmptyState /> : null}
         {sentries
           .filter((sentry) => {
             if (activeFilter === "all") return sentry;
@@ -235,7 +236,31 @@ function IndeterminateWarning() {
           color: theme.mutedText,
         }}
       >
-        Select either unstaked or staked Sentries only.
+        Select either staked or unstaked Sentries only.
+      </Text>
+    </View>
+  );
+}
+
+function EmptyState() {
+  return (
+    <View
+      style={{
+        textAlign: "center",
+        padding: "2em",
+        border: "1px dashed",
+        borderColor: "#303030",
+        borderRadius: "12px",
+      }}
+    >
+      <Text
+        style={{
+          fontSize: "0.9rem",
+          color: theme.mutedText,
+        }}
+      >
+        You have no Sentries in this wallet. No worries, You can buy Sentries on
+        Magic Eden!
       </Text>
     </View>
   );
