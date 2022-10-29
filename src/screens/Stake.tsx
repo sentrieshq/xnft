@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { View, Image, Text, Path, Svg, Button } from "react-xnft";
+import { View, Image, Text, Path, Svg, Button, Loading } from "react-xnft";
 import { Layout } from "../common/Layout";
 import { ActiveFilter, StakeFilter } from "../features/StakeFilter";
-import { useSentryStore } from "../hooks/useSentryStore";
+import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
@@ -16,8 +16,9 @@ type SentryRowProps = {
 export function Stake() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
   const [selected, setSelected] = useState<SentryData[]>([]);
-  const { sentries } = useSentryStore();
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
+
+  const { sentries, isLoading } = useTokens();
 
   useEffect(() => {
     if (selected.length) {
@@ -46,6 +47,24 @@ export function Stake() {
   const isOneOfAKind = checkUniqueStake(selected);
   const isIndeterminate = selected.length && !isOneOfAKind;
   const whichStake = whichStakeType(selected);
+
+  if (isLoading) {
+    return (
+      <Layout hideBg={true}>
+        <View
+          style={{
+            width: "100%",
+            height: "calc(100vh - 7em)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Loading />
+        </View>
+      </Layout>
+    );
+  }
 
   return (
     <Layout hideBg={true}>
