@@ -110,7 +110,7 @@ export function Overview() {
 
 function AddressPill(props: AddressPillProps) {
   const { address, variant = "brand" } = props;
-  const truncatedAddress = truncateString(address, 6);
+  const truncatedAddress = truncateString(address, 4);
 
   return <Label variant={variant}>{truncatedAddress}</Label>;
 }
