@@ -90,7 +90,9 @@ export function checkUniqueStake(selected: SentryData[]) {
 }
 
 export function whichStakeType(selected: SentryData[]) {
-  return selected.every((selectedEntry) => selectedEntry.staked)
+  if (selected.length === 0) return undefined;
+
+  return !selected.every((selectedEntry) => selectedEntry.staked) // do the opposite of this truthy value
     ? "stake"
     : "unstake";
 }
