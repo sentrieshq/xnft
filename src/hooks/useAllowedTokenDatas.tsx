@@ -1,16 +1,42 @@
 import { AccountData, getBatchedMultipleAccounts } from "@cardinal/common";
-import type {
-  StakeAuthorizationData,
-  StakeEntryData,
-  StakePoolData,
-} from "@cardinal/staking/dist/cjs/programs/stakePool";
-import { getStakeEntries } from "@cardinal/staking/dist/cjs/programs/stakePool/accounts";
-import { findStakeEntryIdFromMint } from "@cardinal/staking/dist/cjs/programs/stakePool/utils";
 import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
-import { PublicKey } from "@solana/web3.js";
+import { Keypair, PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
 import { useConnection, usePublicKey } from "react-xnft";
+import * as web3 from "@solana/web3.js";
+import { SignerWallet } from "@saberhq/solana-contrib";
+import type { Connection } from "@solana/web3.js";
+
+import {
+  AnchorProvider,
+  BorshAccountsCoder,
+  Program,
+  BN,
+  utils,
+} from "@project-serum/anchor";
+
+export const STAKE_ENTRY_SEED = "stake-entry";
+export const STAKE_POOL_ADDRESS = new PublicKey(
+  "stkBL96RZkjY5ine4TvPihGqW8UHJfch2cokjAPzV8i"
+);
+import type { AnchorTypes } from "@saberhq/anchor-contrib";
+
+import * as STAKE_POOL_TYPES from "../idl/cardinal_stake_pool";
+
+export const STAKE_POOL_IDL = STAKE_POOL_TYPES.IDL;
+
+export type STAKE_POOL_PROGRAM = STAKE_POOL_TYPES.CardinalStakePool;
+
+export type StakePoolTypes = AnchorTypes<STAKE_POOL_PROGRAM>;
+type Accounts = StakePoolTypes["Accounts"];
+export type StakeEntryData = Accounts["stakeEntry"];
+export type StakePoolData = Accounts["stakePool"];
+
+export type BaseTokenData = {
+  tokenAccount?: AccountData<ParsedTokenAccountData>;
+  metaplexData?: AccountData<metaplex.MetadataData>;
+};
 
 export type AllowedTokenData = BaseTokenData & {
   metadata?: AccountData<any> | null;
@@ -31,9 +57,32 @@ export type ParsedTokenAccountData = {
   };
 };
 
-export type BaseTokenData = {
-  tokenAccount?: AccountData<ParsedTokenAccountData>;
-  metaplexData?: AccountData<metaplex.MetadataData>;
+const getProgram = (connection: Connection) => {
+  const provider = new AnchorProvider(
+    connection,
+    new SignerWallet(Keypair.generate()),
+    {}
+  );
+  return new Program<STAKE_POOL_PROGRAM>(
+    STAKE_POOL_IDL,
+    STAKE_POOL_ADDRESS,
+    provider
+  );
+};
+
+export const getStakeEntries = async (
+  connection: Connection,
+  stakeEntryIds: PublicKey[]
+): Promise<AccountData<StakeEntryData>[]> => {
+  const stakePoolProgram = getProgram(connection);
+
+  const stakeEntries = (await stakePoolProgram.account.stakeEntry.fetchMultiple(
+    stakeEntryIds
+  )) as StakePoolData[];
+  return stakeEntries.map((tm, i) => ({
+    parsed: tm,
+    pubkey: stakeEntryIds[i]!,
+  }));
 };
 
 export const allowedTokensForPool = (
@@ -141,11 +190,16 @@ export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
         allowedTokens.map(
           async (allowedToken) =>
             (
-              await findStakeEntryIdFromMint(
-                connection,
-                walletId!,
-                stakePoolId,
-                new PublicKey(allowedToken.tokenAccount?.parsed.mint ?? "")
+              await web3.PublicKey.findProgramAddress(
+                [
+                  utils.bytes.utf8.encode(STAKE_ENTRY_SEED),
+                  stakePoolId.toBuffer(),
+                  new PublicKey(
+                    allowedToken.tokenAccount?.parsed.mint ?? ""
+                  ).toBuffer(),
+                  walletId!.toBuffer(),
+                ],
+                STAKE_POOL_ADDRESS
               )
             )[0]
         )

@@ -6,6 +6,7 @@ import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
+import { useHandleStake } from "../handlers/useHandleStake";
 
 type SentryRowProps = {
   tokenMetadata: SentryData;
@@ -17,6 +18,8 @@ export function Stake() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
   const [selected, setSelected] = useState<SentryData[]>([]);
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
+
+  const handleStake = useHandleStake();
 
   const { sentries, isLoading } = useTokens();
 
@@ -114,6 +117,7 @@ export function Stake() {
         {isIndeterminate ? (
           <IndeterminateWarning />
         ) : (
+          //<ActionButton selected={selected} stakeType={whichStake} />
           <ActionButton selected={selected} stakeType={whichStake} />
         )}
       </View>
