@@ -488,7 +488,7 @@ const withClaimReceiptMint = async (
  */
 const stake = async (
   connection: Connection,
-  wallet: Wallet,
+  wallet: ReturnType<typeof iWallet>,
   params: {
     stakePoolId: PublicKey;
     originalMintId: PublicKey;
@@ -497,14 +497,6 @@ const stake = async (
     amount?: BN;
   }
 ): Promise<Transaction> => {
-  const supply = await getMintSupply(connection, params.originalMintId);
-  if (
-    (supply.gt(new BN(1)) || params.amount?.gt(new BN(1))) &&
-    params.receiptType === ReceiptType.Original
-  ) {
-    throw new Error("Fungible with receipt type Original is not supported yet");
-  }
-
   let transaction = new Transaction();
   const [stakeEntryId] = await web3.PublicKey.findProgramAddress(
     [
@@ -515,17 +507,19 @@ const stake = async (
     ],
     STAKE_POOL_ADDRESS
   );
-
+  //console.log('stake entry:', stakeEntryId)
   const stakeEntryData = await tryGetAccount(() =>
     getStakeEntry(connection, stakeEntryId)
   );
+
+  //console.log('stake entry data:', stakeEntryData)
   if (!stakeEntryData) {
     [transaction] = await createStakeEntry(connection, wallet, {
       stakePoolId: params.stakePoolId,
       originalMintId: params.originalMintId,
     });
   }
-
+  //console.log('transaction:', transaction)
   await withStake(transaction, connection, wallet, {
     stakePoolId: params.stakePoolId,
     originalMintId: params.originalMintId,
@@ -534,15 +528,7 @@ const stake = async (
   });
 
   if (params.receiptType && params.receiptType !== ReceiptType.None) {
-    const receiptMintId =
-      params.receiptType === ReceiptType.Receipt
-        ? stakeEntryData?.parsed.stakeMint
-        : params.originalMintId;
-    if (!receiptMintId) {
-      throw new Error(
-        "Stake entry has no stake mint. Initialize stake mint first."
-      );
-    }
+    const receiptMintId = params.originalMintId;
     if (
       stakeEntryData?.parsed.stakeMintClaimed ||
       stakeEntryData?.parsed.originalMintClaimed
@@ -569,7 +555,7 @@ const stake = async (
 
 export const executeAllTransactions = async (
   connection: Connection,
-  wallet: Wallet,
+  wallet: ReturnType<typeof iWallet>,
   txs: Transaction[],
   config: {
     throwIndividualError?: boolean;
@@ -586,20 +572,22 @@ export const executeAllTransactions = async (
   }
 ): Promise<(string | null)[]> => {
   const transactions = txs;
+
   if (transactions.length === 0) return [];
 
   const recentBlockhash = await connection.getLatestBlockhash("finalized");
 
-  for (const tx of transactions) {
+  for await (const tx of transactions) {
     tx.feePayer = wallet.publicKey;
     tx.recentBlockhash = recentBlockhash.blockhash;
     tx.lastValidBlockHeight = recentBlockhash.lastValidBlockHeight;
   }
-
+  let _txs = transactions;
   if (transactions.length > 1) {
-    await wallet.signAllTransactions(transactions);
+    console.log("long txn");
+    _txs = await wallet.signAllTransactions(transactions);
   } else {
-    await wallet.signTransaction(transactions[0]!);
+    _txs = await wallet.signTransaction(transactions[0]!);
   }
 
   let txIds: string[] = [];
@@ -607,8 +595,9 @@ export const executeAllTransactions = async (
     ...txIds,
     ...(
       await Promise.all(
-        txs.map(async (tx, index) => {
+        _txs.map(async (tx, index) => {
           try {
+            console.log("testing");
             if (
               config.signers &&
               config.signers.length > 0 &&
@@ -616,43 +605,20 @@ export const executeAllTransactions = async (
             ) {
               tx.partialSign(...config.signers[index]!);
             }
-            const dsa = await sendAndConfirmRawTransaction(
+            const txid = await sendAndConfirmRawTransaction(
               connection,
               tx.serialize(),
-              // {
-              //   signature: '',
-              //   lastValidBlockHeight: tx.lastValidBlockHeight,
-              //   blockhash: tx.recentBlockhash
-              // },
               config.confirmOptions
             );
-            console.log(dsa);
 
-            return dsa;
-            // config.notificationConfig &&
-            //   config.notificationConfig.individualSuccesses &&
-            //   notify({
-            //     message: `${config.notificationConfig.message} ${
-            //       index + (preTx ? 2 : 1)
-            //     }/${transactions.length}`,
-            //     description: config.notificationConfig.message,
-            //     txid,
-            //   })
+            return txid;
           } catch (e) {
             console.log(
               "Failed transaction: ",
               (e as SendTransactionError).logs,
               e
             );
-            // config.notificationConfig &&
-            //   notify({
-            //     message: `${
-            //       config.notificationConfig.errorMessage ?? 'Failed transaction'
-            //     } ${index + (preTx ? 2 : 1)}/${transactions.length}`,
-            //     description: handleError(e, `Transaction failed: ${e}`),
-            //     txid: '',
-            //     type: 'error',
-            //   })
+
             if (config.throwIndividualError) throw new Error(`${e}`);
             return null;
           }
@@ -679,39 +645,15 @@ export async function updateStakeStatus(
   connection: Connection,
   wallet: ReturnType<typeof iWallet>
 ) {
-  // return async ({
-  //   tokenDatas,
-  //   receiptType = ReceiptType.Original,
-  // }: {
-  //   tokenDatas: ({ amount?: BN } & Pick<
-  //     AllowedTokenData,
-  //     "tokenAccount" | "stakeEntry"
-  //   >)[];
-  //   receiptType?: ReceiptType;
-  // }): Promise<string[]> => {
   const stakePoolId = STAKE_POOL_ID;
   if (!stakePoolId) throw "Stake pool not found";
   const txs: (Transaction | null)[] = await Promise.all(
     selectedSentries.map(async (token) => {
       try {
-        // if (!token.tokenAccount) throw "Token account invalid";
-        // if (
-        //   token.stakeEntry &&
-        //   token.stakeEntry.parsed.amount.toNumber() > 0
-        // ) {
-        //   throw 'Fungible tokens already staked in the pool. Staked tokens need to be unstaked and then restaked together with the new tokens.'
-        // }
-        // const amount = token?.amount
-        //   ? new BN(
-        //       token?.amount && token.tokenListData
-        //         ? parseMintNaturalAmountFromDecimal(
-        //             token?.amount,
-        //             token.tokenListData.decimals
-        //           ).toString()
-        //         : 1
-        //     )
-        //   : undefined
         // stake
+        // console.log(stakePoolId)
+        // console.log(token.mint)
+        // console.log(token.publicKey)
         return stake(connection, wallet, {
           stakePoolId: stakePoolId,
           receiptType: ReceiptType.Original,
@@ -721,7 +663,7 @@ export async function updateStakeStatus(
         });
       } catch (e) {
         console.log({
-          message: `Failed to unstake token ${token.publicKey}`,
+          message: `Failed to stake token ${token.publicKey}`,
           description: `${e}`,
           type: "error",
         });
@@ -729,7 +671,6 @@ export async function updateStakeStatus(
       }
     })
   );
-
   try {
     await executeAllTransactions(
       connection,

@@ -16,7 +16,7 @@ import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
-import { useHandleStake } from "../handlers/useHandleStake";
+//import { useHandleStake } from "../handlers/useHandleStake";
 import { updateStakeStatus } from "../utils/transactions";
 import { iWallet } from "../utils/wallet";
 
