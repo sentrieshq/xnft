@@ -1,6 +1,6 @@
 // Credit for https://github.com/cardinal-labs/cardinal-staking-xnft/blob/main/src/handlers/useHandleStake.ts
 
-import { updateStakeStatus } from "../utils/transactions";
+// import { updateStakeStatus } from "../utils/transactions";
 import { useConnection, usePublicKey } from "react-xnft";
 import { iWallet } from "../utils/wallet";
 import { useTokens } from "../hooks/useTokens";
@@ -13,5 +13,5 @@ export const useHandleStake = (selectedSentries: SentryData[]) => {
 
   const { mutate } = useTokens();
 
-  return mutate(updateStakeStatus(selectedSentries, connection, wallet));
+  // return mutate(updateStakeStatus(selectedSentries, connection, wallet));
 };

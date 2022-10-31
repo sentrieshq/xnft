@@ -17,8 +17,11 @@ import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
 //import { useHandleStake } from "../handlers/useHandleStake";
-import { updateStakeStatus } from "../utils/transactions";
+import { updateStakeStatus } from "../utils/tokenOps";
 import { iWallet } from "../utils/wallet";
+import { useStakePoolId } from "../hooks/useStakePoolId";
+import { useEnvironmentCtx } from "../providers/EnvironmentProvider";
+import { useAllowedTokenDatas } from "../hooks/useAllowedTokenDatas";
 
 type SentryRowProps = {
   tokenMetadata: SentryData;
@@ -61,10 +64,19 @@ export function Stake() {
 
   const walletId = usePublicKey();
   const wallet = iWallet(walletId);
-  const connection = useConnection();
+  const { connection } = useEnvironmentCtx();
+  const stakePoolId = useStakePoolId();
+  const allowedTokens = useAllowedTokenDatas(
+    stakePoolId,
+    walletId,
+    connection,
+    true
+  );
 
   async function handleStake() {
-    updateStakeStatus(selected, connection, wallet);
+    updateStakeStatus(selected, connection, wallet, stakePoolId);
+    //console.log(await tokenDatas(walletId, connection))
+    console.log((await allowedTokens).data);
   }
 
   const isOneOfAKind = checkUniqueStake(selected);
