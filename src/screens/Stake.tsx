@@ -154,7 +154,12 @@ export function Stake() {
           visibility: selected.length ? "visible" : "hidden",
         }}
       >
-        {isIndeterminate ? (
+        <ActionButton
+          selected={selected}
+          stakeType={whichStake}
+          onClick={() => handleStake()}
+        />
+        {/* {isIndeterminate ? (
           <IndeterminateWarning />
         ) : (
           <ActionButton
@@ -162,7 +167,7 @@ export function Stake() {
             stakeType={whichStake}
             onClick={() => handleStake()}
           />
-        )}
+        )} */}
       </View>
     </Layout>
   );
