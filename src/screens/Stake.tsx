@@ -21,22 +21,25 @@ import { updateStakeStatus } from "../utils/tokenOps";
 import { iWallet } from "../utils/wallet";
 import { useStakePoolId } from "../hooks/useStakePoolId";
 import { useEnvironmentCtx } from "../providers/EnvironmentProvider";
-import { useAllowedTokenDatas } from "../hooks/useAllowedTokenDatas";
+import {
+  AllowedTokenData,
+  useAllowedTokenDatas,
+} from "../hooks/useAllowedTokenDatas";
 
 type SentryRowProps = {
-  tokenMetadata: SentryData;
+  tokenMetadata: AllowedTokenData;
   selected: boolean;
   onClick: (sentry: SentryData) => void;
 };
 
 export function Stake() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
-  const [selected, setSelected] = useState<SentryData[]>([]);
+  const [selected, setSelected] = useState<AllowedTokenData[]>([]);
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
 
   // const stake = useHandleStake(selected);
 
-  const { sentries, isLoading } = useTokens();
+  // const { sentries, isLoading } = useTokens();
 
   useEffect(() => {
     if (selected.length) {
@@ -44,15 +47,19 @@ export function Stake() {
     }
   }, [activeFilter]);
 
-  function handleSelection(sentry: SentryData) {
+  function handleSelection(sentry: AllowedTokenData) {
     const isAlreadySelected = selected.some(
-      (selectedEntry) => selectedEntry.name === sentry.name
+      (selectedEntry) =>
+        selectedEntry.metaplexData?.parsed.data.name ===
+        sentry.metaplexData?.parsed.data.name
     );
 
     if (isAlreadySelected) {
       setSelected((entry) =>
         entry.filter(
-          (selectedToFilter) => selectedToFilter.name !== sentry.name
+          (selectedToFilter) =>
+            selectedToFilter.metaplexData?.parsed.data.name !==
+            sentry.metaplexData?.parsed.data.name
         )
       );
 
@@ -66,7 +73,7 @@ export function Stake() {
   const wallet = iWallet(walletId);
   const { connection } = useEnvironmentCtx();
   const stakePoolId = useStakePoolId();
-  const allowedTokens = useAllowedTokenDatas(
+  const { sentries, isLoading } = useAllowedTokenDatas(
     stakePoolId,
     walletId,
     connection,
@@ -76,7 +83,6 @@ export function Stake() {
   async function handleStake() {
     updateStakeStatus(selected, connection, wallet, stakePoolId);
     //console.log(await tokenDatas(walletId, connection))
-    console.log((await allowedTokens).data);
   }
 
   const isOneOfAKind = checkUniqueStake(selected);
@@ -123,15 +129,17 @@ export function Stake() {
       >
         {!sentries.length ? <EmptyState /> : null}
         {sentries
-          .filter((sentry) => {
+          .filter((sentry: any) => {
             if (activeFilter === "all") return sentry;
             if (activeFilter === "staked") return sentry.staked;
             if (activeFilter === "unstaked") return !sentry.staked;
           })
-          .map((sentry) => (
+          .map((sentry: any) => (
             <SentryRow
               tokenMetadata={sentry}
-              selected={selected.some((entry) => entry.name === sentry.name)}
+              selected={selected.some(
+                (entry) => entry.metaplexData?.parsed.data.name === sentry.name
+              )}
               onClick={() => handleSelection(sentry)}
             />
           ))}
@@ -189,8 +197,8 @@ function SentryRow(props: SentryRowProps) {
         }}
       >
         <Image
-          src={sentry.image}
-          alt={sentry.name}
+          // src={sentry.metaplexData?.parsed.data.uri}
+          alt={sentry.metaplexData?.parsed.data.name}
           style={{
             width: "42px",
             height: "42px",
@@ -198,7 +206,7 @@ function SentryRow(props: SentryRowProps) {
           }}
         />
         <View>
-          <Text>{sentry.name}</Text>
+          <Text>{sentry.metaplexData?.parsed.data.name}</Text>
           <View
             style={{
               display: "flex",
@@ -211,7 +219,7 @@ function SentryRow(props: SentryRowProps) {
                 color: theme.mutedText,
               }}
             >
-              {sentry.staked ? "Staked" : "Not Staked"}
+              {sentry.tokenAccount?.parsed.delegate ? "Staked" : "Not Staked"}
             </Text>
             <View
               style={{
@@ -219,7 +227,7 @@ function SentryRow(props: SentryRowProps) {
                 top: "-1px",
               }}
             >
-              {sentry.staked ? (
+              {sentry.tokenAccount?.parsed.delegate ? (
                 <Svg
                   viewBox="0 0 24 24"
                   fill={theme.accent}
@@ -262,7 +270,7 @@ function ActionButton({
   stakeType,
   onClick,
 }: {
-  selected: SentryData[];
+  selected: AllowedTokenData[];
   stakeType: "stake" | "unstake" | undefined;
   onClick: () => void;
 }) {

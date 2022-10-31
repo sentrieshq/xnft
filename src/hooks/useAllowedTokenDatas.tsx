@@ -98,13 +98,17 @@ export const allowedTokensForPool = (
     return isAllowed;
   });
 
-export const useAllowedTokenDatas = async (
+export const useAllowedTokenDatas = (
   stakePoolId: PublicKey,
   wallet: PublicKey,
   connection: Connection,
   showFungibleTokens: boolean
 ) => {
-  return useSWR<AllowedTokenData[] | undefined>(
+  const {
+    data: sentries,
+    error,
+    mutate,
+  } = useSWR<AllowedTokenData[] | undefined>(
     [
       "allowedTokenDatas",
       // stakePoolId?.toString(), // stakePoolId?.toString()
@@ -228,4 +232,10 @@ export const useAllowedTokenDatas = async (
     //   enabled: !!stakePoolId && !!walletId,
     // }
   );
+  return {
+    sentries: sentries ? sentries : [],
+    error,
+    isLoading: !sentries && !error,
+    mutate,
+  };
 };

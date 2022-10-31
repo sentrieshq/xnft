@@ -17,6 +17,7 @@ import type { Wallet } from "@saberhq/solana-contrib";
 import { BN } from "@project-serum/anchor";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
 import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
+import { AllowedTokenData } from "../hooks/useAllowedTokenDatas";
 
 export async function getTokens(wallet: PublicKey, connection: Connection) {
   // @ts-ignore
@@ -68,16 +69,20 @@ async function getTokensWithStakeStatus(
 }
 
 export async function updateStakeStatus(
-  selectedSentries: SentryData[],
+  selectedSentries: ({ amount?: BN } & Pick<
+    AllowedTokenData,
+    "tokenAccount" | "stakeEntry"
+  >)[],
   connection: Connection,
   wallet: Wallet,
-  stakePoolId: PublicKey
+  stakePoolId: PublicKey,
+  receiptType?: ReceiptType
 ) {
   if (!stakePoolId) throw "Stake pool not found";
   const txs: (Transaction | null)[] = await Promise.all(
     selectedSentries.map(async (token) => {
       try {
-        if (!token) throw "Token account invalid";
+        if (!token.tokenAccount) throw "Token account invalid";
         // if (
         //   token.stakeEntry &&
         //   token.stakeEntry.parsed.amount.toNumber() > 0
@@ -95,18 +100,23 @@ export async function updateStakeStatus(
         //     )
         //   : undefined
         // stake
-        console.log(token.mint);
-        console.log(token.publicKey);
         return stake(connection, wallet, {
           stakePoolId: stakePoolId,
-          receiptType: ReceiptType.Original,
-          originalMintId: new PublicKey(token.mint),
-          userOriginalMintTokenAccountId: new PublicKey(token.publicKey),
-          amount: new BN(1),
+          receiptType:
+            (!token.amount ||
+              (token.amount &&
+                token.amount.eq(new BN(1)) &&
+                receiptType === ReceiptType.Receipt)) &&
+            receiptType !== ReceiptType.None
+              ? receiptType
+              : undefined,
+          originalMintId: new PublicKey(token.tokenAccount.parsed.mint),
+          userOriginalMintTokenAccountId: token.tokenAccount.pubkey,
+          amount: token.amount,
         });
       } catch (e) {
         console.log({
-          message: `Failed to stake token ${token?.publicKey.toString()}`,
+          message: `Failed to stake token  ${token?.stakeEntry?.pubkey.toString()}`,
           description: `${e}`,
           type: "error",
         });

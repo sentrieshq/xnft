@@ -1,11 +1,12 @@
 import { View, Text, Button } from "react-xnft";
+import { AllowedTokenData } from "../hooks/useAllowedTokenDatas";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 
 export type ActiveFilter = "all" | "staked" | "unstaked";
 
 type StakeFilterProps = {
-  sentries: SentryData[];
+  sentries: AllowedTokenData[];
   filters: ActiveFilter[];
   activeFilter: ActiveFilter;
   onClick: (filter: ActiveFilter) => void;
@@ -88,14 +89,14 @@ function FilterButton({
   );
 }
 
-function getStakedAndUnstakedTokens(tokens: SentryData[]): {
+function getStakedAndUnstakedTokens(tokens: AllowedTokenData[]): {
   staked: number;
   unstaked: number;
 } {
   const stakeStatus = { staked: 0, unstaked: 0 };
 
   tokens.forEach((sentry) => {
-    if (sentry.staked) {
+    if (sentry.tokenAccount?.parsed.delegate) {
       stakeStatus.staked = stakeStatus.staked + 1;
     } else {
       stakeStatus.unstaked = stakeStatus.unstaked + 1;
