@@ -2,7 +2,6 @@ import { AccountData, getBatchedMultipleAccounts } from "@cardinal/common";
 import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
 import { Keypair, PublicKey } from "@solana/web3.js";
-import { useQuery } from "@tanstack/react-query";
 import { useConnection, usePublicKey } from "react-xnft";
 import * as web3 from "@solana/web3.js";
 import { SignerWallet } from "@saberhq/solana-contrib";
@@ -23,6 +22,7 @@ export const STAKE_POOL_ADDRESS = new PublicKey(
 import type { AnchorTypes } from "@saberhq/anchor-contrib";
 
 import * as STAKE_POOL_TYPES from "../idl/cardinal_stake_pool";
+import useSWR from "swr";
 
 export const STAKE_POOL_IDL = STAKE_POOL_TYPES.IDL;
 
@@ -120,7 +120,7 @@ export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
   );
   const walletId = usePublicKey();
   const connection = useConnection();
-  return useQuery<AllowedTokenData[] | undefined>(
+  return useSWR<AllowedTokenData[] | undefined>(
     [
       "allowedTokenDatas",
       stakePoolId?.toString(), // stakePoolId?.toString()
@@ -235,9 +235,9 @@ export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
         ),
         stakeEntryData: stakeEntries[i],
       }));
-    },
-    {
-      enabled: !!stakePoolId && !!walletId,
     }
+    // {
+    //   enabled: !!stakePoolId && !!walletId,
+    // }
   );
 };

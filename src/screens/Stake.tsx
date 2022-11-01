@@ -1,12 +1,24 @@
 import { useState, useEffect } from "react";
-import { View, Image, Text, Path, Svg, Button, Loading } from "react-xnft";
+import {
+  View,
+  Image,
+  Text,
+  Path,
+  Svg,
+  Button,
+  Loading,
+  useConnection,
+  usePublicKey,
+} from "react-xnft";
 import { Layout } from "../common/Layout";
 import { ActiveFilter, StakeFilter } from "../features/StakeFilter";
 import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
-import { useHandleStake } from "../handlers/useHandleStake";
+//import { useHandleStake } from "../handlers/useHandleStake";
+import { updateStakeStatus } from "../utils/transactions";
+import { iWallet } from "../utils/wallet";
 
 type SentryRowProps = {
   tokenMetadata: SentryData;
@@ -19,7 +31,7 @@ export function Stake() {
   const [selected, setSelected] = useState<SentryData[]>([]);
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
 
-  const handleStake = useHandleStake();
+  // const stake = useHandleStake(selected);
 
   const { sentries, isLoading } = useTokens();
 
@@ -45,6 +57,14 @@ export function Stake() {
     }
 
     setSelected([...selected, sentry]);
+  }
+
+  const walletId = usePublicKey();
+  const wallet = iWallet(walletId);
+  const connection = useConnection();
+
+  async function handleStake() {
+    updateStakeStatus(selected, connection, wallet);
   }
 
   const isOneOfAKind = checkUniqueStake(selected);
@@ -117,8 +137,11 @@ export function Stake() {
         {isIndeterminate ? (
           <IndeterminateWarning />
         ) : (
-          //<ActionButton selected={selected} stakeType={whichStake} />
-          <ActionButton selected={selected} stakeType={whichStake} />
+          <ActionButton
+            selected={selected}
+            stakeType={whichStake}
+            onClick={() => handleStake()}
+          />
         )}
       </View>
     </Layout>
@@ -225,9 +248,11 @@ function SentryRow(props: SentryRowProps) {
 function ActionButton({
   selected,
   stakeType,
+  onClick,
 }: {
   selected: SentryData[];
-  stakeType: "stake" | "unstake";
+  stakeType: "stake" | "unstake" | undefined;
+  onClick: () => void;
 }) {
   return (
     <Button
@@ -237,6 +262,7 @@ function ActionButton({
         backgroundColor: theme.brand,
         borderRadius: "100px",
       }}
+      onClick={onClick}
     >
       {stakeType} ({selected.length})
     </Button>

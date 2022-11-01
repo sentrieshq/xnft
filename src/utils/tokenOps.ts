@@ -10,12 +10,12 @@ export async function getTokens(wallet: PublicKey, connection: Connection) {
   const res = (await connection.customSplTokenAccounts(
     wallet
   )) as TokenAccounts;
-
   // Retrieve only Sentries
   const sentries: Omit<SentryData, "staked">[] = res.nftMetadata
-    .map(([_, entry]) => ({
+    .map(([publicKey, entry]) => ({
       ...entry.tokenMetaUriData,
       mint: entry.metadata.mint,
+      publicKey: publicKey,
     }))
     .filter((nft) => nft.name.includes("Sentry"));
 
