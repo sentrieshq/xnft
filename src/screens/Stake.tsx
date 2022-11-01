@@ -1,27 +1,45 @@
 import { useState, useEffect } from "react";
-import { View, Image, Text, Path, Svg, Button, Loading } from "react-xnft";
+import {
+  View,
+  Image,
+  Text,
+  Path,
+  Svg,
+  Button,
+  Loading,
+  useConnection,
+  usePublicKey,
+} from "react-xnft";
 import { Layout } from "../common/Layout";
 import { ActiveFilter, StakeFilter } from "../features/StakeFilter";
 import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
-import { useHandleStake } from "../handlers/useHandleStake";
+//import { useHandleStake } from "../handlers/useHandleStake";
+import { updateStakeStatus } from "../utils/tokenOps";
+import { iWallet } from "../utils/wallet";
+import { useStakePoolId } from "../hooks/useStakePoolId";
+import { useEnvironmentCtx } from "../providers/EnvironmentProvider";
+import {
+  AllowedTokenData,
+  useAllowedTokenDatas,
+} from "../hooks/useAllowedTokenDatas";
 
 type SentryRowProps = {
-  tokenMetadata: SentryData;
+  tokenMetadata: AllowedTokenData;
   selected: boolean;
   onClick: (sentry: SentryData) => void;
 };
 
 export function Stake() {
   const [activeFilter, setActiveFilter] = useState<ActiveFilter>("all");
-  const [selected, setSelected] = useState<SentryData[]>([]);
+  const [selected, setSelected] = useState<AllowedTokenData[]>([]);
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
 
-  const handleStake = useHandleStake();
+  // const stake = useHandleStake(selected);
 
-  const { sentries, isLoading } = useTokens();
+  // const { sentries, isLoading } = useTokens();
 
   useEffect(() => {
     if (selected.length) {
@@ -29,15 +47,19 @@ export function Stake() {
     }
   }, [activeFilter]);
 
-  function handleSelection(sentry: SentryData) {
+  function handleSelection(sentry: AllowedTokenData) {
     const isAlreadySelected = selected.some(
-      (selectedEntry) => selectedEntry.name === sentry.name
+      (selectedEntry) =>
+        selectedEntry.metaplexData?.parsed.data.name ===
+        sentry.metaplexData?.parsed.data.name
     );
 
     if (isAlreadySelected) {
       setSelected((entry) =>
         entry.filter(
-          (selectedToFilter) => selectedToFilter.name !== sentry.name
+          (selectedToFilter) =>
+            selectedToFilter.metaplexData?.parsed.data.name !==
+            sentry.metaplexData?.parsed.data.name
         )
       );
 
@@ -45,6 +67,22 @@ export function Stake() {
     }
 
     setSelected([...selected, sentry]);
+  }
+
+  const walletId = usePublicKey();
+  const wallet = iWallet(walletId);
+  const { connection } = useEnvironmentCtx();
+  const stakePoolId = useStakePoolId();
+  const { sentries, isLoading } = useAllowedTokenDatas(
+    stakePoolId,
+    walletId,
+    connection,
+    true
+  );
+
+  async function handleStake() {
+    updateStakeStatus(selected, connection, wallet, stakePoolId);
+    //console.log(await tokenDatas(walletId, connection))
   }
 
   const isOneOfAKind = checkUniqueStake(selected);
@@ -91,15 +129,17 @@ export function Stake() {
       >
         {!sentries.length ? <EmptyState /> : null}
         {sentries
-          .filter((sentry) => {
+          .filter((sentry: any) => {
             if (activeFilter === "all") return sentry;
             if (activeFilter === "staked") return sentry.staked;
             if (activeFilter === "unstaked") return !sentry.staked;
           })
-          .map((sentry) => (
+          .map((sentry: any) => (
             <SentryRow
               tokenMetadata={sentry}
-              selected={selected.some((entry) => entry.name === sentry.name)}
+              selected={selected.some(
+                (entry) => entry.metaplexData?.parsed.data.name === sentry.name
+              )}
               onClick={() => handleSelection(sentry)}
             />
           ))}
@@ -114,12 +154,20 @@ export function Stake() {
           visibility: selected.length ? "visible" : "hidden",
         }}
       >
-        {isIndeterminate ? (
+        <ActionButton
+          selected={selected}
+          stakeType={whichStake}
+          onClick={() => handleStake()}
+        />
+        {/* {isIndeterminate ? (
           <IndeterminateWarning />
         ) : (
-          //<ActionButton selected={selected} stakeType={whichStake} />
-          <ActionButton selected={selected} stakeType={whichStake} />
-        )}
+          <ActionButton
+            selected={selected}
+            stakeType={whichStake}
+            onClick={() => handleStake()}
+          />
+        )} */}
       </View>
     </Layout>
   );
@@ -154,8 +202,8 @@ function SentryRow(props: SentryRowProps) {
         }}
       >
         <Image
-          src={sentry.image}
-          alt={sentry.name}
+          // src={sentry.metaplexData?.parsed.data.uri}
+          alt={sentry.metaplexData?.parsed.data.name}
           style={{
             width: "42px",
             height: "42px",
@@ -163,7 +211,7 @@ function SentryRow(props: SentryRowProps) {
           }}
         />
         <View>
-          <Text>{sentry.name}</Text>
+          <Text>{sentry.metaplexData?.parsed.data.name}</Text>
           <View
             style={{
               display: "flex",
@@ -176,7 +224,7 @@ function SentryRow(props: SentryRowProps) {
                 color: theme.mutedText,
               }}
             >
-              {sentry.staked ? "Staked" : "Not Staked"}
+              {sentry.tokenAccount?.parsed.delegate ? "Staked" : "Not Staked"}
             </Text>
             <View
               style={{
@@ -184,7 +232,7 @@ function SentryRow(props: SentryRowProps) {
                 top: "-1px",
               }}
             >
-              {sentry.staked ? (
+              {sentry.tokenAccount?.parsed.delegate ? (
                 <Svg
                   viewBox="0 0 24 24"
                   fill={theme.accent}
@@ -225,9 +273,11 @@ function SentryRow(props: SentryRowProps) {
 function ActionButton({
   selected,
   stakeType,
+  onClick,
 }: {
-  selected: SentryData[];
-  stakeType: "stake" | "unstake";
+  selected: AllowedTokenData[];
+  stakeType: "stake" | "unstake" | undefined;
+  onClick: () => void;
 }) {
   return (
     <Button
@@ -237,6 +287,7 @@ function ActionButton({
         backgroundColor: theme.brand,
         borderRadius: "100px",
       }}
+      onClick={onClick}
     >
       {stakeType} ({selected.length})
     </Button>

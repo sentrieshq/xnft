@@ -1,42 +1,21 @@
+import useSWR from "swr";
 import { AccountData, getBatchedMultipleAccounts } from "@cardinal/common";
+import type {
+  StakeAuthorizationData,
+  StakeEntryData,
+  StakePoolData,
+} from "@cardinal/staking/dist/cjs/programs/stakePool";
+import {
+  getStakeAuthorizationsForPool,
+  getStakeEntries,
+  getStakePool,
+} from "@cardinal/staking/dist/cjs/programs/stakePool/accounts";
+import { findStakeEntryIdFromMint } from "@cardinal/staking/dist/cjs/programs/stakePool/utils";
 import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
-import { Keypair, PublicKey } from "@solana/web3.js";
-import { useQuery } from "@tanstack/react-query";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { useConnection, usePublicKey } from "react-xnft";
-import * as web3 from "@solana/web3.js";
-import { SignerWallet } from "@saberhq/solana-contrib";
-import type { Connection } from "@solana/web3.js";
-
-import {
-  AnchorProvider,
-  BorshAccountsCoder,
-  Program,
-  BN,
-  utils,
-} from "@project-serum/anchor";
-
-export const STAKE_ENTRY_SEED = "stake-entry";
-export const STAKE_POOL_ADDRESS = new PublicKey(
-  "stkBL96RZkjY5ine4TvPihGqW8UHJfch2cokjAPzV8i"
-);
-import type { AnchorTypes } from "@saberhq/anchor-contrib";
-
-import * as STAKE_POOL_TYPES from "../idl/cardinal_stake_pool";
-
-export const STAKE_POOL_IDL = STAKE_POOL_TYPES.IDL;
-
-export type STAKE_POOL_PROGRAM = STAKE_POOL_TYPES.CardinalStakePool;
-
-export type StakePoolTypes = AnchorTypes<STAKE_POOL_PROGRAM>;
-type Accounts = StakePoolTypes["Accounts"];
-export type StakeEntryData = Accounts["stakeEntry"];
-export type StakePoolData = Accounts["stakePool"];
-
-export type BaseTokenData = {
-  tokenAccount?: AccountData<ParsedTokenAccountData>;
-  metaplexData?: AccountData<metaplex.MetadataData>;
-};
+import type { Wallet } from "@saberhq/solana-contrib";
 
 export type AllowedTokenData = BaseTokenData & {
   metadata?: AccountData<any> | null;
@@ -57,46 +36,31 @@ export type ParsedTokenAccountData = {
   };
 };
 
-const getProgram = (connection: Connection) => {
-  const provider = new AnchorProvider(
-    connection,
-    new SignerWallet(Keypair.generate()),
-    {}
-  );
-  return new Program<STAKE_POOL_PROGRAM>(
-    STAKE_POOL_IDL,
-    STAKE_POOL_ADDRESS,
-    provider
-  );
-};
-
-export const getStakeEntries = async (
-  connection: Connection,
-  stakeEntryIds: PublicKey[]
-): Promise<AccountData<StakeEntryData>[]> => {
-  const stakePoolProgram = getProgram(connection);
-
-  const stakeEntries = (await stakePoolProgram.account.stakeEntry.fetchMultiple(
-    stakeEntryIds
-  )) as StakePoolData[];
-  return stakeEntries.map((tm, i) => ({
-    parsed: tm,
-    pubkey: stakeEntryIds[i]!,
-  }));
+export type BaseTokenData = {
+  tokenAccount?: AccountData<ParsedTokenAccountData>;
+  metaplexData?: AccountData<metaplex.MetadataData>;
 };
 
 export const allowedTokensForPool = (
   tokenDatas: BaseTokenData[],
+  stakePool: AccountData<StakePoolData>,
+  stakeAuthorizations?: AccountData<StakeAuthorizationData>[],
   allowFrozen?: boolean
 ) =>
   tokenDatas.filter((token) => {
     let isAllowed = true;
-    const creatorAddresses = ["Ha47XzLYkuZm32A6hXnEMLxL56jkAZvT9zRKJnioFvZK"]; // TODO: Move to const for us.
+    const creatorAddresses = stakePool.parsed.requiresCreators;
+    const collectionAddresses = stakePool.parsed.requiresCollections;
+    const requiresAuthorization = stakePool.parsed.requiresAuthorization;
     if (!allowFrozen && token.tokenAccount?.parsed.state === "frozen") {
       return false;
     }
 
-    if (creatorAddresses.length > 0) {
+    if (
+      stakePool.parsed.requiresCreators.length > 0 ||
+      stakePool.parsed.requiresCollections.length > 0 ||
+      stakePool.parsed.requiresAuthorization
+    ) {
       isAllowed = false;
       if (creatorAddresses && creatorAddresses.length > 0) {
         creatorAddresses.forEach((filterCreator) => {
@@ -110,28 +74,57 @@ export const allowedTokensForPool = (
           }
         });
       }
+
+      if (collectionAddresses && collectionAddresses.length > 0 && !isAllowed) {
+        collectionAddresses.forEach((collectionAddress) => {
+          if (
+            token.metaplexData?.parsed?.collection?.verified &&
+            token.metaplexData?.parsed?.collection?.key.toString() ===
+              collectionAddress.toString()
+          ) {
+            isAllowed = true;
+          }
+        });
+      }
+      if (
+        requiresAuthorization &&
+        stakeAuthorizations
+          ?.map((s) => s.parsed.mint.toString())
+          ?.includes(token?.tokenAccount?.parsed.mint ?? "")
+      ) {
+        isAllowed = true;
+      }
     }
     return isAllowed;
   });
 
-export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
-  const stakePoolId = new PublicKey(
-    "3WS5GJSUAPXeLBbcPQRocxDYRtWbcX9PXb87J1TzFnmX"
-  );
-  const walletId = usePublicKey();
-  const connection = useConnection();
-  return useQuery<AllowedTokenData[] | undefined>(
+export const useAllowedTokenDatas = (
+  stakePoolId: PublicKey,
+  wallet: PublicKey,
+  connection: Connection,
+  showFungibleTokens: boolean
+) => {
+  const {
+    data: sentries,
+    error,
+    mutate,
+  } = useSWR<AllowedTokenData[] | undefined>(
     [
       "allowedTokenDatas",
-      stakePoolId?.toString(), // stakePoolId?.toString()
-      stakePoolId?.toString(), // stakePool?.pubkey.toString()
-      walletId?.toString(),
+      // stakePoolId?.toString(), // stakePoolId?.toString()
+      // stakePool?.pubkey.toString(), // stakePool?.pubkey.toString()
+      wallet?.toString(),
       showFungibleTokens,
     ],
     async () => {
-      if (!stakePoolId || !walletId) return;
+      const stakePool = await getStakePool(connection, stakePoolId);
+      const stakeAuthorizations = await getStakeAuthorizationsForPool(
+        connection,
+        stakePoolId
+      );
+      if (!stakePoolId || !stakePool || !wallet) return;
       const allTokenAccounts = await connection.getParsedTokenAccountsByOwner(
-        walletId!,
+        wallet!,
         {
           programId: TOKEN_PROGRAM_ID,
         }
@@ -184,22 +177,21 @@ export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
         metaplexData: metaplexData[tokenAccount.pubkey.toString()],
       }));
 
-      const allowedTokens = allowedTokensForPool(baseTokenDatas);
+      const allowedTokens = allowedTokensForPool(
+        baseTokenDatas,
+        stakePool,
+        stakeAuthorizations
+      );
 
       const stakeEntryIds = await Promise.all(
         allowedTokens.map(
           async (allowedToken) =>
             (
-              await web3.PublicKey.findProgramAddress(
-                [
-                  utils.bytes.utf8.encode(STAKE_ENTRY_SEED),
-                  stakePoolId.toBuffer(),
-                  new PublicKey(
-                    allowedToken.tokenAccount?.parsed.mint ?? ""
-                  ).toBuffer(),
-                  walletId!.toBuffer(),
-                ],
-                STAKE_POOL_ADDRESS
+              await findStakeEntryIdFromMint(
+                connection,
+                wallet!,
+                stakePoolId,
+                new PublicKey(allowedToken.tokenAccount?.parsed.mint ?? "")
               )
             )[0]
         )
@@ -235,9 +227,15 @@ export const useAllowedTokenDatas = (showFungibleTokens: boolean) => {
         ),
         stakeEntryData: stakeEntries[i],
       }));
-    },
-    {
-      enabled: !!stakePoolId && !!walletId,
     }
+    // {
+    //   enabled: !!stakePoolId && !!walletId,
+    // }
   );
+  return {
+    sentries: sentries ? sentries : [],
+    error,
+    isLoading: !sentries && !error,
+    mutate,
+  };
 };

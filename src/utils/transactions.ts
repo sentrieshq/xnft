@@ -32,7 +32,7 @@ export const executeAllTransactions = async (
 
   const recentBlockhash = (await connection.getRecentBlockhash("max"))
     .blockhash;
-  for (const tx of transactions) {
+  for await (const tx of transactions) {
     tx.feePayer = wallet.publicKey;
     tx.recentBlockhash = recentBlockhash;
   }

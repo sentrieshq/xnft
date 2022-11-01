@@ -44,4 +44,8 @@ export enum TokenState {
   Unstaked = "initialized",
 }
 
-export type SentryData = TokenMetaUriData & { mint: string; staked: boolean };
+export type SentryData = TokenMetaUriData & {
+  mint: string;
+  staked: boolean;
+  publicKey: string;
+};

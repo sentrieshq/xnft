@@ -1,5 +1,6 @@
 import { Tab, Image } from "react-xnft";
 import { ActiveFilter } from "../features/StakeFilter";
+import { AllowedTokenData } from "../hooks/useAllowedTokenDatas";
 import { NavigatorRoute, Route } from "../typings/routes";
 import { SentryData } from "../typings/tokenMetadata";
 import { Icon } from "./icons";
@@ -82,17 +83,23 @@ export function formatUSD(number?: number) {
   return "$" + formatCompactUSD.format(number);
 }
 
-export function checkUniqueStake(selected: SentryData[]) {
+export function checkUniqueStake(selected: AllowedTokenData[]) {
   return selected.length
-    ? selected.every((selectedElement) => selectedElement.staked) ||
-        selected.every((selectedElement) => selectedElement.staked === false)
+    ? selected.every(
+        (selectedElement) => selectedElement.tokenAccount?.parsed.delegate
+      ) ||
+        selected.every((selectedElement) =>
+          selectedElement.tokenAccount?.parsed.delegate ? true : false
+        )
     : undefined;
 }
 
-export function whichStakeType(selected: SentryData[]) {
+export function whichStakeType(selected: AllowedTokenData[]) {
   if (selected.length === 0) return undefined;
 
-  return !selected.every((selectedEntry) => selectedEntry.staked) // do the opposite of this truthy value
+  return !selected.every(
+    (selectedEntry) => selectedEntry.tokenAccount?.parsed.delegate
+  ) // do the opposite of this truthy value
     ? "stake"
     : "unstake";
 }
