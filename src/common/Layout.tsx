@@ -1,13 +1,31 @@
-import { View, Image } from "react-xnft";
+import { View, Image, Loading } from "react-xnft";
 import { theme } from "../utils/theme";
 
 type LayoutProps = {
   children: React.ReactNode;
   hideBg?: boolean;
+  isLoading?: boolean;
 };
 
 export function Layout(props: LayoutProps) {
-  const { children, hideBg = false } = props;
+  const { children, hideBg = false, isLoading = false } = props;
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          width: "100%",
+          height: "calc(100vh - 7em)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: theme.bg,
+        }}
+      >
+        <Loading />
+      </View>
+    );
+  }
 
   const bg = hideBg
     ? {}

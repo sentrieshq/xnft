@@ -6,7 +6,6 @@ import { useTokens } from "../hooks/useTokens";
 import { SentryData } from "../typings/tokenMetadata";
 import { theme } from "../utils/theme";
 import { checkUniqueStake, whichStakeType } from "../utils/utils";
-import { useHandleStake } from "../handlers/useHandleStake";
 
 type SentryRowProps = {
   tokenMetadata: SentryData;
@@ -19,8 +18,6 @@ export function Stake() {
   const [selected, setSelected] = useState<SentryData[]>([]);
   const filters: ActiveFilter[] = ["all", "staked", "unstaked"];
 
-  const handleStake = useHandleStake();
-
   const { sentries, isLoading } = useTokens();
 
   useEffect(() => {
@@ -30,6 +27,7 @@ export function Stake() {
   }, [activeFilter]);
 
   function handleSelection(sentry: SentryData) {
+    return; // no-op / disable select on first release
     const isAlreadySelected = selected.some(
       (selectedEntry) => selectedEntry.name === sentry.name
     );
@@ -51,26 +49,8 @@ export function Stake() {
   const isIndeterminate = selected.length && !isOneOfAKind;
   const whichStake = whichStakeType(selected);
 
-  if (isLoading) {
-    return (
-      <Layout hideBg={true}>
-        <View
-          style={{
-            width: "100%",
-            height: "calc(100vh - 7em)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
-          <Loading />
-        </View>
-      </Layout>
-    );
-  }
-
   return (
-    <Layout hideBg={true}>
+    <Layout hideBg={true} isLoading={isLoading}>
       <StakeFilter
         sentries={sentries}
         filters={filters}
@@ -117,7 +97,6 @@ export function Stake() {
         {isIndeterminate ? (
           <IndeterminateWarning />
         ) : (
-          //<ActionButton selected={selected} stakeType={whichStake} />
           <ActionButton selected={selected} stakeType={whichStake} />
         )}
       </View>
@@ -141,7 +120,7 @@ function SentryRow(props: SentryRowProps) {
         borderRadius: selected ? "12px" : 0,
         padding: "0.8em",
         marginBottom: "0.5em",
-        cursor: "pointer",
+        // cursor: "pointer", /* disable for first release */
         userSelect: "none",
         backgroundColor: selected ? theme.bg : "",
         transition: "all 0.2s ease-in-out",
@@ -163,7 +142,7 @@ function SentryRow(props: SentryRowProps) {
           }}
         />
         <View>
-          <Text>{sentry.name}</Text>
+          <Text style={{ color: "white" }}>{sentry.name}</Text>
           <View
             style={{
               display: "flex",
@@ -227,7 +206,7 @@ function ActionButton({
   stakeType,
 }: {
   selected: SentryData[];
-  stakeType: "stake" | "unstake";
+  stakeType: "stake" | "unstake" | undefined;
 }) {
   return (
     <Button

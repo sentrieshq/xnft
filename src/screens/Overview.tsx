@@ -49,6 +49,7 @@ export function Overview() {
         </View>
         <Text
           style={{
+            color: "white",
             fontWeight: "bold",
             fontSize: "1.2rem",
           }}

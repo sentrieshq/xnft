@@ -11,7 +11,7 @@ export function Metric(props: MetricProps) {
   const { title, subtitle, children } = props;
   return (
     <View>
-      <Text>{title}</Text>
+      <Text style={{ color: "white" }}>{title}</Text>
       <MetricLabel>{subtitle}</MetricLabel>
       {children ? children : null}
     </View>

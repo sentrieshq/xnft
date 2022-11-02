@@ -80,6 +80,7 @@ function FilterButton({
         fontWeight: "normal",
         textTransform: "capitalize",
         color: theme.mutedText,
+        backgroundColor: theme.bgLight,
         ...(active ? activeCSS : {}),
       }}
     >

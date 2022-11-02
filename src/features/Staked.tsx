@@ -18,6 +18,7 @@ export function Staked(props: StakedProps) {
     <View style={{ lineHeight: "1.7" }}>
       <Text
         style={{
+          color: "white",
           marginTop: "-0.3em",
           fontSize: "2.65rem",
           fontWeight: "800",
