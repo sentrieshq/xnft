@@ -1,22 +1,15 @@
-import { PublicKey, Connection, Transaction } from "@solana/web3.js";
+import { PublicKey, Connection, Transaction, Signer } from "@solana/web3.js";
 import {
   SentryData,
   TokenAccounts,
   TokenState,
 } from "../typings/tokenMetadata";
-import type { StakeEntryData } from "@cardinal/staking/dist/cjs/programs/stakePool";
-import { AccountData, getBatchedMultipleAccounts } from "@cardinal/common";
-import { iWallet } from "./wallet";
-import { usePublicKey } from "react-xnft";
-import { useEnvironmentCtx } from "../providers/EnvironmentProvider";
-import { useStakePoolId } from "../hooks/useStakePoolId";
-import { stake } from "@cardinal/staking";
+import { stake, createStakeEntryAndStakeMint } from "@cardinal/staking";
+
 import { ReceiptType } from "@cardinal/staking/dist/cjs/programs/stakePool";
 import { executeAllTransactions } from "./transactions";
 import type { Wallet } from "@saberhq/solana-contrib";
 import { BN } from "@project-serum/anchor";
-import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
-import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
 import { AllowedTokenData } from "../hooks/useAllowedTokenDatas";
 
 export async function getTokens(wallet: PublicKey, connection: Connection) {
@@ -79,6 +72,61 @@ export async function updateStakeStatus(
   receiptType?: ReceiptType
 ) {
   if (!stakePoolId) throw "Stake pool not found";
+  if (selectedSentries.length <= 0) throw "No tokens selected";
+  const initTxs: { tx: Transaction; signers: Signer[] }[] = [];
+  for (let i = 0; i < selectedSentries.length; i++) {
+    try {
+      const token = selectedSentries[i]!;
+      if (!token.tokenAccount) throw "Token account invalid";
+      if (receiptType === ReceiptType.Receipt) {
+        console.log("Creating stake entry and stake mint...");
+        const [initTx, , stakeMintKeypair] = await createStakeEntryAndStakeMint(
+          connection,
+          wallet,
+          {
+            stakePoolId: stakePoolId,
+            originalMintId: new PublicKey(token.tokenAccount.parsed.mint),
+          }
+        );
+        if (initTx.instructions.length > 0) {
+          initTxs.push({
+            tx: initTx,
+            signers: stakeMintKeypair ? [stakeMintKeypair] : [],
+          });
+        }
+      }
+    } catch (e) {
+      console.log(e);
+      // notify({
+      //   message: `Failed to stake token ${tokens[
+      //     i
+      //   ]?.stakeEntry?.pubkey.toString()}`,
+      //   description: `${e}`,
+      //   type: 'error',
+      // })
+    }
+  }
+
+  if (initTxs.length > 0) {
+    try {
+      await executeAllTransactions(
+        connection,
+        wallet,
+        initTxs.map(({ tx }) => tx),
+        {
+          signers: initTxs.map(({ signers }) => signers),
+          throwIndividualError: true,
+          notificationConfig: {
+            message: `Successfully staked`,
+            description: "Stake progress will now dynamically update",
+          },
+        }
+      );
+    } catch (e) {
+      console.log(e);
+    }
+  }
+
   const txs: (Transaction | null)[] = await Promise.all(
     selectedSentries.map(async (token) => {
       try {
@@ -116,7 +164,7 @@ export async function updateStakeStatus(
         });
       } catch (e) {
         console.log({
-          message: `Failed to stake token  ${token?.stakeEntry?.pubkey.toString()}`,
+          message: `Failed to unstake token ${token?.stakeEntry?.pubkey.toString()}`,
           description: `${e}`,
           type: "error",
         });
@@ -124,7 +172,7 @@ export async function updateStakeStatus(
       }
     })
   );
-  console.log(txs);
+  //console.log(txs)
   try {
     await executeAllTransactions(
       connection,
@@ -137,7 +185,9 @@ export async function updateStakeStatus(
         },
       }
     );
-  } catch (e) {}
+  } catch (e) {
+    console.log(e);
+  }
 
   return [];
 }

@@ -2,6 +2,7 @@ import ReactXnft, { AnchorDom } from "react-xnft";
 import { App } from "./App";
 import { SWRConfig } from "swr";
 import { EnvironmentProvider } from "./providers/EnvironmentProvider";
+import { StakePoolMetadataProvider } from "./providers/StakePoolMetadataProvider";
 
 ReactXnft.render(
   <AnchorDom>
@@ -13,7 +14,9 @@ ReactXnft.render(
             fetch(resource, init).then((res) => res.json()),
         }}
       >
-        <App />
+        <StakePoolMetadataProvider>
+          <App />
+        </StakePoolMetadataProvider>
       </SWRConfig>
     </EnvironmentProvider>
   </AnchorDom>

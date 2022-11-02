@@ -1,5 +1,6 @@
-import { PublicKey } from "@solana/web3.js";
+import { useStakePoolMetadata } from "../providers/StakePoolMetadataProvider";
 
 export const useStakePoolId = () => {
-  return new PublicKey("3WS5GJSUAPXeLBbcPQRocxDYRtWbcX9PXb87J1TzFnmX");
+  const { stakePoolMetadata } = useStakePoolMetadata();
+  return stakePoolMetadata?.stakePoolAddress;
 };

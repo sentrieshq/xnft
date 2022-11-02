@@ -14,8 +14,6 @@ import { findStakeEntryIdFromMint } from "@cardinal/staking/dist/cjs/programs/st
 import * as metaplex from "@metaplex-foundation/mpl-token-metadata";
 import { TOKEN_PROGRAM_ID } from "@project-serum/anchor/dist/cjs/utils/token";
 import { Connection, PublicKey } from "@solana/web3.js";
-import { useConnection, usePublicKey } from "react-xnft";
-import type { Wallet } from "@saberhq/solana-contrib";
 
 export type AllowedTokenData = BaseTokenData & {
   metadata?: AccountData<any> | null;
@@ -100,6 +98,8 @@ export const allowedTokensForPool = (
 
 export const useAllowedTokenDatas = (
   stakePoolId: PublicKey,
+  stakePool: any,
+  stakeAuthorizations: any,
   wallet: PublicKey,
   connection: Connection,
   showFungibleTokens: boolean
@@ -111,17 +111,12 @@ export const useAllowedTokenDatas = (
   } = useSWR<AllowedTokenData[] | undefined>(
     [
       "allowedTokenDatas",
-      // stakePoolId?.toString(), // stakePoolId?.toString()
-      // stakePool?.pubkey.toString(), // stakePool?.pubkey.toString()
+      stakePoolId?.toString(), // stakePoolId?.toString()
+      stakePool?.pubkey.toString(), // stakePool?.pubkey.toString()
       wallet?.toString(),
       showFungibleTokens,
     ],
     async () => {
-      const stakePool = await getStakePool(connection, stakePoolId);
-      const stakeAuthorizations = await getStakeAuthorizationsForPool(
-        connection,
-        stakePoolId
-      );
       if (!stakePoolId || !stakePool || !wallet) return;
       const allTokenAccounts = await connection.getParsedTokenAccountsByOwner(
         wallet!,
@@ -228,9 +223,6 @@ export const useAllowedTokenDatas = (
         stakeEntryData: stakeEntries[i],
       }));
     }
-    // {
-    //   enabled: !!stakePoolId && !!walletId,
-    // }
   );
   return {
     sentries: sentries ? sentries : [],

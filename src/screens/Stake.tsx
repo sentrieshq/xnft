@@ -25,6 +25,8 @@ import {
   AllowedTokenData,
   useAllowedTokenDatas,
 } from "../hooks/useAllowedTokenDatas";
+import { useStakePoolData } from "../hooks/useStakePoolData";
+import { useStakeAuthorizationsForPool } from "../hooks/useStakeAuthorizationsForPool";
 
 type SentryRowProps = {
   tokenMetadata: AllowedTokenData;
@@ -73,8 +75,12 @@ export function Stake() {
   const wallet = iWallet(walletId);
   const { connection } = useEnvironmentCtx();
   const stakePoolId = useStakePoolId();
+  const { data: stakePool } = useStakePoolData();
+  const { data: stakeAuthorizations } = useStakeAuthorizationsForPool();
   const { sentries, isLoading } = useAllowedTokenDatas(
     stakePoolId,
+    stakePool,
+    stakeAuthorizations,
     walletId,
     connection,
     true
