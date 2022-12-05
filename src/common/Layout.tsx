@@ -1,4 +1,4 @@
-import { View, Image, Loading } from "react-xnft";
+import { View, Image, Loading, ScrollBar } from "react-xnft";
 import { theme } from "../utils/theme";
 
 type LayoutProps = {
@@ -37,28 +37,31 @@ export function Layout(props: LayoutProps) {
       };
 
   return (
-    <View
-      style={{
-        ...bg,
-        color: "white",
-        height: "100%",
-      }}
-    >
+    <ScrollBar>
       <View
         style={{
-          padding: theme.containerPadding,
-          paddingTop: "0.5em",
-          paddingBottom: 0,
+          ...bg,
+          color: "white",
+          height: "100%",
         }}
       >
-        <Image
+        <View
           style={{
-            marginLeft: "-10px",
+            padding: theme.containerPadding,
+            paddingTop: "0.5em",
+            paddingBottom: 0,
           }}
-          src="https://res.cloudinary.com/aukaco/image/upload/v1665917235/logo_bv6uam.png"
-        />
+        >
+          <Image
+            style={{
+              marginLeft: "-10px",
+              maxWidth: "128px",
+            }}
+            src="https://res.cloudinary.com/aukaco/image/upload/v1665917235/logo_bv6uam.png"
+          />
+        </View>
+        <View>{children}</View>
       </View>
-      <View>{children}</View>
-    </View>
+    </ScrollBar>
   );
 }
